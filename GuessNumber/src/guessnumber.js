@@ -4,6 +4,7 @@ var MainLayer = cc.Layer.extend({
 
         this._super();
 
+        
         return true;
     }
 });
