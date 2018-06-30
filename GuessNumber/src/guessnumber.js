@@ -131,7 +131,7 @@ var MainLayer = cc.Layer.extend({
       this.loser.setVisible(false);
       this.guess = '';
       this.input.setString("");
-      this.mesg.setString("");
+      this.mesg.setString(""); 
 
     },
 
