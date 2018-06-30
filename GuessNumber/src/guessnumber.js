@@ -3,11 +3,18 @@ var MainLayer = cc.Layer.extend({
     nums:new Array(10),
     rects:new Array(10),
     enter:null,
+    enterrect:null,
     back:null,
+    backrect:null,
     input:null,
     mesg:null,
     guess:"",
     dx:4,
+    counter:0,
+    answer:createAnswer(3),
+    winner:null,
+    loser:null,
+    isRun:true,
     ctor:function () {
 
         this._super();
@@ -20,6 +27,8 @@ var MainLayer = cc.Layer.extend({
 
         this.initLayout();
 
+        this.initGame();
+
         this.setUpmymouse(this);
 
         this.scheduleUpdate(); //update()
@@ -31,6 +40,7 @@ var MainLayer = cc.Layer.extend({
         var frameCache = cc.spriteFrameCache;
         frameCache.addSpriteFrames(res.number_plist, res.number_png);
 
+        //number key
         var px,py;
         for (i = 0; i<this.nums.length ;i++){
             this.nums[i] = new cc.Sprite("#number"+ i +".png");
@@ -60,12 +70,29 @@ var MainLayer = cc.Layer.extend({
         this.enter = new cc.Sprite(res.enter_png);
         this.enter.x = cc.winSize.width * 4 / 6;
         this.enter.y = cc.winSize.height * 1 / 8;
+
+        this.enterrect = new cc.Rect(
+            this.enter.x - this.enter.width/2,
+            this.enter.y - this.enter.height/2,
+            this.enter.width,
+            this.enter.height,
+        );
+
         this.addChild(this.enter);
+
 
         //back key
         this.back = new cc.Sprite(res.back_png);
         this.back.x = cc.winSize.width * 2 / 6;
         this.back.y = cc.winSize.height * 1 / 8;
+
+        this.backrect = new cc.Rect(
+            this.back.x - this.back.width/2,
+            this.back.y - this.back.height/2,
+            this.back.width,
+            this.back.height,
+        );
+
         this.addChild(this.back);
 
         //input
@@ -80,6 +107,32 @@ var MainLayer = cc.Layer.extend({
         this.mesg.y = cc.winSize.height * 5 / 8;
         this.addChild(this.mesg);
 
+        //winner
+        this.winner = new cc.Sprite(res.winner_png);
+        this.winner.x = cc.winSize.width / 2;
+        this.winner.y = cc.winSize.height  / 2;
+        this.addChild(this.winner);
+        // this.winner.setVisible(false);
+
+        //loser
+        this.loser = new cc.Sprite(res.loser_png);
+        this.loser.x = cc.winSize.width / 2;
+        this.loser.y = cc.winSize.height  / 2;
+        this.addChild(this.loser);
+        // this.loser.setVisible(false);
+
+    },
+
+    initGame() {
+      this.isRun = true;
+      this.counter=0;
+      this.answer=createAnswer(3);
+      this.winner.setVisible(false);
+      this.loser.setVisible(false);
+      this.guess = '';
+      this.input.setString("");
+      this.mesg.setString("");
+
     },
 
     setUpmymouse: function(layer){
@@ -93,15 +146,65 @@ var MainLayer = cc.Layer.extend({
                   // console.log(x + " x " + y);
                   var point = new cc.Point(x, y);
 
-                  for (i = 0; i < layer.rects.length; i++) {
-                      if (cc.rectContainsPoint(layer.rects[i], point)) {
-                          console.log("press:" + i);
-                          layer.guess += i;
-                          layer.input.setString(layer.guess);
+                  if (!layer.isRun){
+                      // 開新局
+                      layer.initGame();
+                      return;
+                  }
 
-                          break;
+                  if (layer.guess.length>0){
+                      // back
+                      if (cc.rectContainsPoint(layer.backrect, point)) {
+                          console.log("press:back");
+                          layer.guess = layer.guess.substring(0, layer.guess.length-1);
+                          layer.input.setString(layer.guess);
+                          return;
                       }
                   }
+
+                  if (layer.guess.length == 3){
+                      // enter
+                      if (cc.rectContainsPoint(layer.enterrect, point)) {
+                          console.log("press:enter");
+                          console.log(layer.answer + "==>" + layer.guess);
+                          var result = checkAB(layer.answer,layer.guess);
+                          layer.counter++;
+                          layer.mesg.setString(checkAB(layer.answer,layer.guess));
+                          layer.guess = "";
+
+                          if (result === "3A0B"){
+                              //winner
+                              // layer.mesg.setString("WINNER");
+                              layer.winner.setVisible(true);
+                              layer.isRun = false;
+                          }else if (layer.counter == 3){
+                              //loser
+                              layer.mesg.setString("Loser:" + layer.answer);
+                              layer.loser.setVisible(true);
+                              layer.isRun = false;
+                          }else {
+                              layer.mesg.setString(result);
+                          }
+                      }
+                  }else{
+                      // number
+                      for (i = 0; i < layer.rects.length; i++) {
+                          if (cc.rectContainsPoint(layer.rects[i], point)) {
+                              console.log("press:" + i);
+                              layer.guess += i;
+                              layer.input.setString(layer.guess);
+
+                              break;
+                          }
+                      }
+                  }
+
+
+
+
+
+
+
               },
           };
           cc.eventManager.addListener(mouseListener,this);
@@ -128,3 +231,50 @@ var MainScene = cc.Scene.extend({
     }
 });
 
+//延伸樂透範例
+function myLottery() {
+    var n = new Array(49);
+    for (var i=0;i<n.length;i++) n[i] = i+1;
+
+    n = shuffle(n);
+    var r = "";
+    for (var i=0;i<6;i++){
+        r += n[i] + ",";
+    }
+    return r;
+}
+
+function createAnswer(d) {
+    var n = [0,1,2,3,4,5,6,7,8,9];
+    n = shuffle(n);
+    var r ="";
+    for (var i=0;i<d;i++){
+        r += n[i];
+    }
+    return r;
+}
+
+function shuffle(a) {
+    var i,j,x;
+
+    for(i=a.length;i;i--){
+        j = parseInt(Math.random()*i); // 0-9
+        x = a[i-1];
+        a[i-1] = a[j];
+        a[j] = x;
+    }
+    return a;
+}
+
+function checkAB(ans,guess){
+    var a,b; a = b = 0;
+    for (var i=0; i<guess.length;i++){
+        if (ans.charAt(i) == guess.charAt(i)){
+            a++;
+        }else if (ans.indexOf(guess.charAt(i)) !== -1){
+            b++;
+        }
+    }
+
+    return a + "A" + b + "B";
+}
